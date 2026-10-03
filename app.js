@@ -47,6 +47,12 @@
   const HEADING_RATIOS = [2, 1.6, 1.32, 1.15, 1, 0.9];
   const HEADING_PT_RATIOS = [2, 1.55, 1.28, 1.12, 1, 0.92];
 
+  /* Editor text size bounds, in rem. */
+  const EDITOR_FONT_MIN = 0.65;
+  const EDITOR_FONT_MAX = 1.6;
+  const EDITOR_FONT_STEP = 0.05;
+  const EDITOR_FONT_DEFAULT = 0.95;
+
   /* Theme-aware default colours. Custom colours survive a theme switch. */
   const THEME_COLORS = {
     light: { headingColor: '#191a1c', linkColor: '#1f6f78', codeBg: '#ededf0' },
@@ -68,6 +74,7 @@
     headingCase: 'normal',
     numberHeadings: false,
     numberDepth: 3,
+    numberStyle: 'decimal',
     monoFont: FONT_MONO,
     codeBg: THEME_COLORS.light.codeBg,
     pageSize: 'A4',
@@ -78,25 +85,25 @@
     minimal: {
       bodyFont: FONT_SERIF, baseSize: 16, lineHeight: 1.6, paraSpacing: 0.75,
       textAlign: 'left', headingFont: 'inherit', headingWeight: 700, headingScale: 1,
-      headingCase: 'normal', numberHeadings: false, numberDepth: 3, monoFont: FONT_MONO,
+      headingCase: 'normal', numberHeadings: false, numberDepth: 3, numberStyle: 'decimal', monoFont: FONT_MONO,
       pageSize: 'A4', pageMargin: 22,
     },
     report: {
       bodyFont: FONT_HUMANIST, baseSize: 15, lineHeight: 1.5, paraSpacing: 0.6,
       textAlign: 'justify', headingFont: 'inherit', headingWeight: 700, headingScale: 0.95,
-      headingCase: 'normal', numberHeadings: true, numberDepth: 3, monoFont: FONT_CONSOLAS,
+      headingCase: 'normal', numberHeadings: true, numberDepth: 3, numberStyle: 'decimal', monoFont: FONT_CONSOLAS,
       pageSize: 'A4', pageMargin: 25,
     },
     book: {
       bodyFont: FONT_GARAMOND, baseSize: 17, lineHeight: 1.75, paraSpacing: 0.35,
       textAlign: 'justify', headingFont: FONT_GARAMOND, headingWeight: 600, headingScale: 1.05,
-      headingCase: 'normal', numberHeadings: true, numberDepth: 2, monoFont: FONT_COURIER,
+      headingCase: 'normal', numberHeadings: true, numberDepth: 2, numberStyle: 'decimal', monoFont: FONT_COURIER,
       pageSize: 'A4', pageMargin: 24,
     },
     modern: {
       bodyFont: FONT_GROTESK, baseSize: 16, lineHeight: 1.65, paraSpacing: 1,
       textAlign: 'left', headingFont: FONT_GROTESK, headingWeight: 800, headingScale: 1.1,
-      headingCase: 'uppercase', numberHeadings: false, numberDepth: 3, monoFont: FONT_PLEX,
+      headingCase: 'uppercase', numberHeadings: false, numberDepth: 3, numberStyle: 'decimal', monoFont: FONT_PLEX,
       pageSize: 'Letter', pageMargin: 20,
     },
   };
@@ -114,6 +121,7 @@
       'mode.preview': 'Preview',
       'toolbar.language': 'Language',
       'toolbar.template': 'Template',
+      'toolbar.outline': 'Contents',
       'toolbar.theme': 'Theme',
       'toolbar.themeLight': 'Switch to light theme',
       'toolbar.themeDark': 'Switch to dark theme',
@@ -123,6 +131,16 @@
       'action.listUnordered': 'Bulleted list',
       'action.listOrdered': 'Numbered list',
       'action.smartTable': 'Smart table',
+      'action.fontDecrease': 'Smaller',
+      'action.fontIncrease': 'Larger',
+      'action.bold': 'Bold',
+      'action.italic': 'Italic',
+      'action.strikethrough': 'Strikethrough',
+      'action.heading': 'Heading',
+      'action.inlineCode': 'Code',
+      'action.blockquote': 'Quote',
+      'action.link': 'Link',
+      'action.syncScroll': 'Sync scroll',
       'toast.noSelection': 'Select some text first',
       'confirm.tableHeader': 'Does the first line contain the column headers?',
       'table.columnPrefix': 'Column',
@@ -130,6 +148,9 @@
       'editor.placeholder': 'Write Markdown here…',
       'panel.title': 'Style template',
       'panel.close': 'Close',
+      'outline.title': 'Contents',
+      'outline.depth': 'Show up to level',
+      'outline.empty': 'No headings yet',
       'panel.preset': 'Preset',
       'panel.typography': 'Body text',
       'panel.bodyFont': 'Font family',
@@ -152,6 +173,7 @@
       'panel.caseSmallCaps': 'Small caps',
       'panel.numberHeadings': 'Number headings',
       'panel.numberDepth': 'Numbering depth',
+      'panel.numberStyle': 'Numbering style',
       'panel.code': 'Code',
       'panel.monoFont': 'Monospace font',
       'panel.codeBg': 'Background',
@@ -186,6 +208,7 @@
       'mode.preview': 'Vista previa',
       'toolbar.language': 'Idioma',
       'toolbar.template': 'Plantilla',
+      'toolbar.outline': 'Índice',
       'toolbar.theme': 'Tema',
       'toolbar.themeLight': 'Cambiar a tema claro',
       'toolbar.themeDark': 'Cambiar a tema oscuro',
@@ -195,6 +218,16 @@
       'action.listUnordered': 'Lista con viñetas',
       'action.listOrdered': 'Lista numerada',
       'action.smartTable': 'Tabla inteligente',
+      'action.fontDecrease': 'Menor',
+      'action.fontIncrease': 'Mayor',
+      'action.bold': 'Negrita',
+      'action.italic': 'Cursiva',
+      'action.strikethrough': 'Tachado',
+      'action.heading': 'Encabezado',
+      'action.inlineCode': 'Código',
+      'action.blockquote': 'Cita',
+      'action.link': 'Enlace',
+      'action.syncScroll': 'Sincronizar desplazamiento',
       'toast.noSelection': 'Selecciona primero algo de texto',
       'confirm.tableHeader': '¿La primera línea contiene las cabeceras de columna?',
       'table.columnPrefix': 'Columna',
@@ -202,6 +235,9 @@
       'editor.placeholder': 'Escribe Markdown aquí…',
       'panel.title': 'Plantilla de estilo',
       'panel.close': 'Cerrar',
+      'outline.title': 'Índice',
+      'outline.depth': 'Mostrar hasta nivel',
+      'outline.empty': 'Aún no hay títulos',
       'panel.preset': 'Ajuste predefinido',
       'panel.typography': 'Texto del cuerpo',
       'panel.bodyFont': 'Tipografía',
@@ -224,6 +260,7 @@
       'panel.caseSmallCaps': 'Versalitas',
       'panel.numberHeadings': 'Numerar títulos',
       'panel.numberDepth': 'Profundidad',
+      'panel.numberStyle': 'Estilo de numeración',
       'panel.code': 'Código',
       'panel.monoFont': 'Tipografía monoespaciada',
       'panel.codeBg': 'Fondo',
@@ -258,6 +295,7 @@
       'mode.preview': 'Vista prèvia',
       'toolbar.language': 'Idioma',
       'toolbar.template': 'Plantilla',
+      'toolbar.outline': 'Índex',
       'toolbar.theme': 'Tema',
       'toolbar.themeLight': 'Canviar a tema clar',
       'toolbar.themeDark': 'Canviar a tema fosc',
@@ -267,6 +305,16 @@
       'action.listUnordered': 'Llista amb pics',
       'action.listOrdered': 'Llista numerada',
       'action.smartTable': 'Taula intel·ligent',
+      'action.fontDecrease': 'Menor',
+      'action.fontIncrease': 'Major',
+      'action.bold': 'Negreta',
+      'action.italic': 'Cursiva',
+      'action.strikethrough': 'Ratllat',
+      'action.heading': 'Encapçalament',
+      'action.inlineCode': 'Codi',
+      'action.blockquote': 'Cita',
+      'action.link': 'Enllaç',
+      'action.syncScroll': 'Sincronitzar desplaçament',
       'toast.noSelection': 'Selecciona primer un text',
       'confirm.tableHeader': 'La primera línia conté les capçaleres de columna?',
       'table.columnPrefix': 'Columna',
@@ -274,6 +322,9 @@
       'editor.placeholder': 'Escriu Markdown ací…',
       'panel.title': 'Plantilla d’estil',
       'panel.close': 'Tancar',
+      'outline.title': 'Índex',
+      'outline.depth': 'Mostrar fins a nivell',
+      'outline.empty': 'Encara no hi ha títols',
       'panel.preset': 'Ajust predefinit',
       'panel.typography': 'Text del cos',
       'panel.bodyFont': 'Tipografia',
@@ -296,6 +347,7 @@
       'panel.caseSmallCaps': 'Versaletes',
       'panel.numberHeadings': 'Numerar títols',
       'panel.numberDepth': 'Profunditat',
+      'panel.numberStyle': 'Estil de numeració',
       'panel.code': 'Codi',
       'panel.monoFont': 'Tipografia monoespaiada',
       'panel.codeBg': 'Fons',
@@ -470,11 +522,79 @@ console.log(greeting("world"));
   };
 
   /**
+   * Convert a number to upper-case roman numerals (1 → I, 4 → IV).
+   * @param {number} value - Positive integer.
+   * @returns {string} Roman numeral.
+   */
+  const toRoman = (value) => {
+    const table = [
+      [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+      [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+    ];
+    let remaining = value;
+    let output = '';
+    table.forEach(([amount, symbol]) => {
+      while (remaining >= amount) {
+        output += symbol;
+        remaining -= amount;
+      }
+    });
+    return output;
+  };
+
+  /**
+   * Convert a number to alphabetic labels (1 → A, 27 → AA).
+   * @param {number} value - Positive integer.
+   * @returns {string} Alphabetic label.
+   */
+  const toAlpha = (value) => {
+    let remaining = value;
+    let output = '';
+    while (remaining > 0) {
+      const rest = (remaining - 1) % 26;
+      output = String.fromCharCode(65 + rest) + output;
+      remaining = Math.floor((remaining - 1) / 26);
+    }
+    return output;
+  };
+
+  const NUMBER_STYLES = Object.freeze({
+    decimal: (parts) => parts.join('.'),
+    'decimal-trailing': (parts) => `${parts.join('.')}.`,
+    paren: (parts) => `${parts.join('.')})`,
+    outline: (parts) => parts
+      .map((value, index) => {
+        const level = index + 1;
+        if (level === 1) {
+          return toRoman(value);
+        }
+        if (level === 2) {
+          return toAlpha(value);
+        }
+        if (level === 4) {
+          return toAlpha(value).toLowerCase();
+        }
+        if (level === 5) {
+          return toRoman(value).toLowerCase();
+        }
+        return String(value);
+      })
+      .join('.'),
+  });
+
+  const formatHeadingNumber = (counters, level, style) => {
+    const parts = counters.slice(0, level);
+    const formatter = NUMBER_STYLES[style] || NUMBER_STYLES.decimal;
+    return formatter(parts);
+  };
+
+  /**
    * Prefix headings with hierarchical numbers such as 1, 1.1, 1.1.1.
    * @param {HTMLElement} root - Container holding the rendered document.
    * @param {number} depth - Deepest heading level to number.
+   * @param {string} [style='decimal'] - Numbering scheme key.
    */
-  const numberHeadings = (root, depth) => {
+  const numberHeadings = (root, depth, style = 'decimal') => {
     const counters = [0, 0, 0, 0, 0, 0];
     root.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
       const level = Number(heading.tagName.charAt(1));
@@ -485,7 +605,7 @@ console.log(greeting("world"));
       if (level > depth) {
         return;
       }
-      const label = counters.slice(0, level).join('.');
+      const label = formatHeadingNumber(counters, level, style);
       const span = document.createElement('span');
       span.className = 'h-num';
       span.textContent = `${label}\u00a0\u00a0`;
@@ -495,16 +615,35 @@ console.log(greeting("world"));
 
   /**
    * Render Markdown into safe HTML, applying heading numbering when enabled.
+   * When withLines is true, each top-level block is tagged with its source
+   * line so the editor and the preview can be scrolled in sync by content.
    * @param {string} markdown - Source Markdown.
    * @param {object} template - Active style template.
+   * @param {boolean} [withLines=false] - Tag blocks with their source line.
    * @returns {string} Rendered, sanitised HTML.
    */
-  const renderDocument = (markdown, template) => {
-    const clean = sanitizeHtml(marked.parse(markdown || ''));
+  const renderDocument = (markdown, template, withLines = false) => {
+    const tokens = marked.lexer(markdown || '');
+    const parts = [];
+    let line = 0;
+    tokens.forEach((token) => {
+      if (token.type !== 'space') {
+        const block = document.createElement('div');
+        block.innerHTML = sanitizeHtml(marked.parser([token]));
+        const first = block.firstElementChild;
+        if (first) {
+          if (withLines) {
+            first.dataset.line = String(line);
+          }
+          parts.push(block.innerHTML);
+        }
+      }
+      line += token.raw ? (token.raw.match(/\n/g) || []).length : 0;
+    });
     const holder = document.createElement('div');
-    holder.innerHTML = clean;
+    holder.innerHTML = parts.join('');
     if (template.numberHeadings) {
-      numberHeadings(holder, template.numberDepth);
+      numberHeadings(holder, template.numberDepth, template.numberStyle);
     }
     return holder.innerHTML;
   };
@@ -519,11 +658,15 @@ console.log(greeting("world"));
     mode: 'split',
     theme: 'light',
     lang: 'en',
+    editorFontSize: EDITOR_FONT_DEFAULT,
+    syncScroll: true,
+    outlineDepth: 3,
     template: { ...DEFAULT_TEMPLATE },
   };
 
   let toastTimer = 0;
   let currentFileHandle = null;
+  let syncing = false;
 
   /* ------------------------------------------------------------------------
      Persistence.
@@ -541,6 +684,13 @@ console.log(greeting("world"));
         mode: ['editor', 'split', 'preview'].includes(stored.mode) ? stored.mode : state.mode,
         theme: stored.theme === 'dark' ? 'dark' : 'light',
         lang: I18N[stored.lang] ? stored.lang : state.lang,
+        editorFontSize: typeof stored.editorFontSize === 'number'
+          ? clamp(stored.editorFontSize, EDITOR_FONT_MIN, EDITOR_FONT_MAX)
+          : state.editorFontSize,
+        syncScroll: typeof stored.syncScroll === 'boolean' ? stored.syncScroll : state.syncScroll,
+        outlineDepth: Number.isFinite(stored.outlineDepth)
+          ? clamp(stored.outlineDepth, 1, 6)
+          : state.outlineDepth,
       });
       state.template = { ...DEFAULT_TEMPLATE, ...(stored.template || {}) };
     } catch (error) {
@@ -566,12 +716,18 @@ console.log(greeting("world"));
     el.app = $('.app');
     el.editor = $('#editor');
     el.preview = $('#preview');
+    el.previewPane = $('.pane-preview');
     el.docTitle = $('#doc-title');
     el.langSelect = $('#lang-select');
     el.themeToggle = $('#theme-toggle');
     el.templateToggle = $('#template-toggle');
     el.panel = $('#template-panel');
     el.panelClose = $('#panel-close');
+    el.outlineToggle = $('#outline-toggle');
+    el.outlinePanel = $('#outline-panel');
+    el.outlineClose = $('#outline-close');
+    el.outlineList = $('#outline-list');
+    el.outlineDepth = $('#outline-depth');
     el.scrim = $('#scrim');
     el.toast = $('#toast');
     el.statWords = $('#stat-words');
@@ -594,6 +750,7 @@ console.log(greeting("world"));
       headingCase: $('#tpl-heading-case'),
       numberHeadings: $('#tpl-number-headings'),
       numberDepth: $('#tpl-number-depth'),
+      numberStyle: $('#tpl-number-style'),
       codeBg: $('#tpl-code-bg'),
       pageSize: $('#tpl-page-size'),
       pageMargin: $('#tpl-page-margin'),
@@ -615,6 +772,16 @@ console.log(greeting("world"));
     el.listUnordered = $('#list-unordered');
     el.listOrdered = $('#list-ordered');
     el.smartTable = $('#smart-table');
+    el.mdBold = $('#md-bold');
+    el.mdItalic = $('#md-italic');
+    el.mdStrike = $('#md-strike');
+    el.mdHeading = $('#md-heading');
+    el.mdCode = $('#md-code');
+    el.mdQuote = $('#md-quote');
+    el.mdLink = $('#md-link');
+    el.editorFontDecrease = $('#editor-font-decrease');
+    el.editorFontIncrease = $('#editor-font-increase');
+    el.syncScroll = $('#sync-scroll');
     el.reset = $('#tpl-reset');
   };
 
@@ -648,6 +815,9 @@ console.log(greeting("world"));
     });
     applyTheme();
     renderStatus();
+    if (el.outlinePanel.classList.contains('is-open')) {
+      renderOutline();
+    }
   };
 
   const applyMode = () => {
@@ -657,6 +827,95 @@ console.log(greeting("world"));
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
     });
+  };
+
+  const applyEditorFontSize = () => {
+    el.editor.style.setProperty('--editor-font-size', `${state.editorFontSize}rem`);
+    el.editorFontDecrease.disabled = state.editorFontSize <= EDITOR_FONT_MIN;
+    el.editorFontIncrease.disabled = state.editorFontSize >= EDITOR_FONT_MAX;
+  };
+
+  const applySyncScroll = () => {
+    el.syncScroll.setAttribute('aria-pressed', String(state.syncScroll));
+  };
+
+  const editorMetrics = () => {
+    const style = getComputedStyle(el.editor);
+    const fontSize = parseFloat(style.fontSize) || 16;
+    const lineHeight = style.lineHeight.endsWith('px')
+      ? parseFloat(style.lineHeight)
+      : fontSize * (parseFloat(style.lineHeight) || 1.7);
+    return { lineHeight, paddingTop: parseFloat(style.paddingTop) || 0 };
+  };
+
+  const previewBlocks = () => Array.from(el.preview.querySelectorAll('[data-line]'));
+
+  /**
+   * Scroll the preview so the block at the top of the editor sits at the top.
+   */
+  const alignPreviewToEditor = () => {
+    const blocks = previewBlocks();
+    if (blocks.length === 0) {
+      return;
+    }
+    const { lineHeight, paddingTop } = editorMetrics();
+    const topLine = Math.max(0, Math.floor((el.editor.scrollTop - paddingTop) / lineHeight));
+    let target = blocks[0];
+    blocks.forEach((block) => {
+      if (Number(block.dataset.line) <= topLine) {
+        target = block;
+      }
+    });
+    const paneTop = el.previewPane.getBoundingClientRect().top;
+    el.previewPane.scrollTop += target.getBoundingClientRect().top - paneTop;
+  };
+
+  /**
+   * Scroll the editor so the block at the top of the preview sits at the top.
+   */
+  const alignEditorToPreview = () => {
+    const blocks = previewBlocks();
+    if (blocks.length === 0) {
+      return;
+    }
+    const { lineHeight, paddingTop } = editorMetrics();
+    const paneTop = el.previewPane.getBoundingClientRect().top;
+    let target = blocks[0];
+    blocks.forEach((block) => {
+      if (block.getBoundingClientRect().top - paneTop <= 1) {
+        target = block;
+      }
+    });
+    const line = Number(target.dataset.line) || 0;
+    el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
+  };
+
+  /**
+   * Keep both panes in step using their content. The syncing flag stops the
+   * scroll event triggered by the target pane from bouncing back.
+   * @param {'editor'|'preview'} source - Pane the user is scrolling.
+   */
+  const syncScrollPosition = (source) => {
+    if (!state.syncScroll || syncing) {
+      return;
+    }
+    syncing = true;
+    if (source === 'editor') {
+      alignPreviewToEditor();
+    } else {
+      alignEditorToPreview();
+    }
+    requestAnimationFrame(() => { syncing = false; });
+  };
+
+  /**
+   * Nudge the editor text size by one step, keeping it within bounds.
+   * @param {number} delta - Amount to add, in rem.
+   */
+  const changeEditorFontSize = (delta) => {
+    state.editorFontSize = clamp(round(state.editorFontSize + delta, 2), EDITOR_FONT_MIN, EDITOR_FONT_MAX);
+    applyEditorFontSize();
+    saveState();
   };
 
   /* ------------------------------------------------------------------------
@@ -712,6 +971,7 @@ console.log(greeting("world"));
     controls.headingCase.value = template.headingCase;
     controls.numberHeadings.checked = template.numberHeadings;
     controls.numberDepth.value = template.numberDepth;
+    controls.numberStyle.value = template.numberStyle;
     controls.codeBg.value = template.codeBg;
     controls.pageSize.value = template.pageSize;
     controls.pageMargin.value = template.pageMargin;
@@ -725,7 +985,11 @@ console.log(greeting("world"));
     el.outputs.paraSpacing.value = `${template.paraSpacing.toFixed(1)}em`;
     el.outputs.headingWeight.value = template.headingWeight;
     el.outputs.headingScale.value = `${template.headingScale.toFixed(2)}×`;
-    el.outputs.numberDepth.value = template.numberDepth;
+    el.outputs.numberDepth.value = formatHeadingNumber(
+      [1, 1, 1, 1, 1, 1],
+      clamp(template.numberDepth, 1, 6),
+      template.numberStyle
+    );
     el.outputs.pageMargin.value = `${template.pageMargin}mm`;
   };
 
@@ -741,7 +1005,7 @@ console.log(greeting("world"));
     renderTemplateControls();
     applyTemplateToPreview();
     renderStatus();
-    if ('numberHeadings' in patch || 'numberDepth' in patch) {
+    if ('numberHeadings' in patch || 'numberDepth' in patch || 'numberStyle' in patch) {
       renderPreview();
     }
     saveState();
@@ -780,9 +1044,15 @@ console.log(greeting("world"));
   const renderPreview = () => {
     if (!state.content.trim()) {
       el.preview.innerHTML = `<p class="preview-empty">${escapeHtml(t('empty.preview'))}</p>`;
-      return;
+    } else {
+      el.preview.innerHTML = renderDocument(state.content, state.template, true);
+      if (state.syncScroll) {
+        syncScrollPosition('editor');
+      }
     }
-    el.preview.innerHTML = renderDocument(state.content, state.template);
+    if (el.outlinePanel.classList.contains('is-open')) {
+      renderOutline();
+    }
   };
 
   const renderStatus = () => {
@@ -846,6 +1116,7 @@ console.log(greeting("world"));
       `a { color: ${template.linkColor}; text-decoration: underline; }`,
       `ul, ol { margin: 0 0 ${paraPt}pt; padding-left: 1.6em; }`,
       'li { margin-bottom: 2pt; }',
+      'li > p { margin: 0; }',
       `blockquote { margin: 0 0 ${paraPt}pt; padding-left: 10pt; border-left: 3pt solid ${template.linkColor}; color: #55585e; font-style: italic; }`,
       `code { font-family: ${template.monoFont}; font-size: 0.9em; background: ${template.codeBg}; padding: 1pt 3pt; }`,
       `pre { font-family: ${template.monoFont}; font-size: 0.86em; background: ${template.codeBg}; padding: 8pt 10pt; white-space: pre-wrap; }`,
@@ -1056,6 +1327,28 @@ console.log(greeting("world"));
     return [formatRow(headerRow), separatorRow, ...bodyRows.map(formatRow)].join('\n');
   };
 
+  /**
+   * Replace a range of the editor text and restore the caret.
+   * Assigning value (instead of setRangeText) forces a repaint: some engines
+   * do not paint setRangeText edits until the next text input arrives.
+   * @param {number} start - Start of the replaced range.
+   * @param {number} end - End of the replaced range.
+   * @param {string} replacement - New text for the range.
+   * @param {number} [caretStart] - Selection start after the edit.
+   * @param {number} [caretEnd] - Selection end after the edit.
+   */
+  const replaceEditorRange = (start, end, replacement, caretStart, caretEnd) => {
+    const value = el.editor.value;
+    const nextValue = value.slice(0, start) + replacement + value.slice(end);
+    const scrollTop = el.editor.scrollTop;
+    el.editor.value = nextValue;
+    const from = typeof caretStart === 'number' ? caretStart : start + replacement.length;
+    const to = typeof caretEnd === 'number' ? caretEnd : from;
+    el.editor.setSelectionRange(from, to);
+    el.editor.scrollTop = scrollTop;
+    el.editor.focus();
+  };
+
   const applySelectionTransform = (transformFn) => {
     const start = el.editor.selectionStart;
     const end = el.editor.selectionEnd;
@@ -1069,7 +1362,7 @@ console.log(greeting("world"));
       showToast(t('toast.noSelection'));
       return;
     }
-    el.editor.setRangeText(result, start, end, 'end');
+    replaceEditorRange(start, end, result);
     state.content = el.editor.value;
     renderStatus();
     saveState();
@@ -1083,6 +1376,106 @@ console.log(greeting("world"));
   const transformSelectionToSmartTable = () => applySelectionTransform((text) =>
     buildSmartTable(text, window.confirm(t('confirm.tableHeader')), t('table.columnPrefix'))
   );
+
+  /* ------------------------------------------------------------------------
+     Inline Markdown formatting: emphasis, code, links and block elements.
+     ------------------------------------------------------------------------ */
+
+  const getSelectionRange = () => ({
+    start: el.editor.selectionStart,
+    end: el.editor.selectionEnd,
+    text: el.editor.value.slice(el.editor.selectionStart, el.editor.selectionEnd),
+  });
+
+  /**
+   * Write a replacement into the editor and keep the desired selection.
+   * @param {number} start - Start of the replaced range.
+   * @param {number} end - End of the replaced range.
+   * @param {string} replacement - New text for the range.
+   * @param {number} [caretStart] - Selection start after the edit.
+   * @param {number} [caretEnd] - Selection end after the edit.
+   */
+  const commitEditorEdit = (start, end, replacement, caretStart, caretEnd) => {
+    replaceEditorRange(start, end, replacement, caretStart, caretEnd);
+    state.content = el.editor.value;
+    renderStatus();
+    saveState();
+    scheduleRender();
+  };
+
+  /**
+   * Toggle an inline marker around the selection, removing it when present.
+   * @param {string} marker - Opening marker such as ** or `.
+   * @param {string} [endMarker] - Closing marker when it differs.
+   */
+  const toggleInlineMark = (marker, endMarker = marker) => {
+    const { start, end, text } = getSelectionRange();
+    const value = el.editor.value;
+    const openLen = marker.length;
+    const closeLen = endMarker.length;
+    const wrappedInside = text.length >= openLen + closeLen
+      && text.startsWith(marker) && text.endsWith(endMarker);
+    const surroundedOutside = start >= openLen
+      && value.slice(start - openLen, start) === marker
+      && value.slice(end, end + closeLen) === endMarker;
+
+    if (surroundedOutside) {
+      const outerStart = start - openLen;
+      const outerEnd = end + closeLen;
+      const inner = value.slice(outerStart + openLen, outerEnd - closeLen);
+      commitEditorEdit(outerStart, outerEnd, inner, outerStart, outerStart + inner.length);
+      return;
+    }
+
+    if (wrappedInside) {
+      const inner = text.slice(openLen, text.length - closeLen);
+      commitEditorEdit(start, end, inner, start, start + inner.length);
+      return;
+    }
+
+    const replacement = `${marker}${text}${endMarker}`;
+    const caret = start + openLen;
+    commitEditorEdit(start, end, replacement, caret, caret + text.length);
+  };
+
+  /**
+   * Rewrite every line touched by the selection.
+   * @param {Function} transform - Maps an array of lines to new lines.
+   */
+  const transformSelectedLines = (transform) => {
+    const { start, end } = getSelectionRange();
+    const value = el.editor.value;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const nextBreak = value.indexOf('\n', end);
+    const lineEnd = nextBreak === -1 ? value.length : nextBreak;
+    const lines = value.slice(lineStart, lineEnd).split('\n');
+    const replacement = transform(lines).join('\n');
+    commitEditorEdit(lineStart, lineEnd, replacement, lineStart, lineStart + replacement.length);
+  };
+
+  const toggleHeading = () => transformSelectedLines((lines) => lines.map((line) => {
+    const match = line.match(/^(#{1,6})\s+(.*)$/);
+    const level = match ? match[1].length : 0;
+    const content = match ? match[2] : line;
+    const nextLevel = level >= 3 ? 0 : level + 1;
+    return nextLevel === 0 ? content : `${'#'.repeat(nextLevel)} ${content}`;
+  }));
+
+  const toggleBlockquote = () => transformSelectedLines((lines) => {
+    const quoted = lines.every((line) => /^>\s?/.test(line) || line.trim() === '');
+    return lines.map((line) => (quoted ? line.replace(/^>\s?/, '') : `> ${line}`));
+  });
+
+  const insertLink = () => {
+    const { start, end, text } = getSelectionRange();
+    if (text.length > 0) {
+      const replacement = `[${text}](url)`;
+      const urlStart = start + text.length + 3;
+      commitEditorEdit(start, end, replacement, urlStart, urlStart + 3);
+      return;
+    }
+    commitEditorEdit(start, end, '[](url)', start + 1, start + 1);
+  };
 
   /* ------------------------------------------------------------------------
      UI helpers.
@@ -1099,7 +1492,87 @@ console.log(greeting("world"));
     }, TOAST_MS);
   };
 
+  const outlineHeadingText = (token) => {
+    const holder = document.createElement('div');
+    holder.innerHTML = sanitizeHtml(marked.parser([token]));
+    return (holder.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+
+  /**
+   * Collect the headings up to the configured level with their source lines.
+   * @returns {Array<{level:number, text:string, line:number}>} Outline entries.
+   */
+  const collectOutline = () => {
+    const maxLevel = clamp(Number(el.outlineDepth.value) || state.outlineDepth, 1, 6);
+    const tokens = marked.lexer(state.content || '');
+    const items = [];
+    let line = 0;
+    tokens.forEach((token) => {
+      if (token.type === 'heading' && token.depth <= maxLevel) {
+        items.push({ level: token.depth, text: outlineHeadingText(token), line });
+      }
+      line += token.raw ? (token.raw.match(/\n/g) || []).length : 0;
+    });
+    return items;
+  };
+
+  const lineStartIndex = (text, line) => {
+    let index = 0;
+    for (let i = 0; i < line; i += 1) {
+      const next = text.indexOf('\n', index);
+      if (next === -1) {
+        return text.length;
+      }
+      index = next + 1;
+    }
+    return index;
+  };
+
+  /**
+   * Jump the editor and the preview to the heading on the given source line.
+   * @param {number} line - Zero-based source line of the heading.
+   */
+  const jumpToHeading = (line) => {
+    const { lineHeight, paddingTop } = editorMetrics();
+    const start = lineStartIndex(state.content, line);
+    el.editor.focus();
+    el.editor.setSelectionRange(start, start);
+    el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
+    const block = el.preview.querySelector(`[data-line="${line}"]`);
+    if (block) {
+      const paneTop = el.previewPane.getBoundingClientRect().top;
+      el.previewPane.scrollTop += block.getBoundingClientRect().top - paneTop;
+    }
+  };
+
+  const renderOutline = () => {
+    el.outlineList.textContent = '';
+    const items = collectOutline();
+    if (items.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'outline-empty';
+      empty.textContent = t('outline.empty');
+      el.outlineList.appendChild(empty);
+      return;
+    }
+    items.forEach((item) => {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'outline-item';
+      link.dataset.level = String(item.level);
+      link.textContent = item.text;
+      link.addEventListener('click', () => {
+        closeOutline();
+        jumpToHeading(item.line);
+      });
+      el.outlineList.appendChild(link);
+    });
+  };
+
   const openPanel = () => {
+    if (el.outlinePanel.classList.contains('is-open')) {
+      closeOutline();
+    }
     el.panel.classList.add('is-open');
     el.panel.setAttribute('aria-hidden', 'false');
     el.templateToggle.setAttribute('aria-expanded', 'true');
@@ -1109,12 +1582,40 @@ console.log(greeting("world"));
   };
 
   const closePanel = () => {
+    if (!el.panel.classList.contains('is-open')) {
+      return;
+    }
     el.panel.classList.remove('is-open');
     el.panel.setAttribute('aria-hidden', 'true');
     el.templateToggle.setAttribute('aria-expanded', 'false');
     el.scrim.classList.remove('is-visible');
     setTimeout(() => { el.scrim.hidden = true; }, 200);
     el.templateToggle.focus();
+  };
+
+  const openOutline = () => {
+    if (el.panel.classList.contains('is-open')) {
+      closePanel();
+    }
+    el.outlinePanel.classList.add('is-open');
+    el.outlinePanel.setAttribute('aria-hidden', 'false');
+    el.outlineToggle.setAttribute('aria-expanded', 'true');
+    el.scrim.hidden = false;
+    requestAnimationFrame(() => el.scrim.classList.add('is-visible'));
+    renderOutline();
+    el.outlineDepth.focus();
+  };
+
+  const closeOutline = () => {
+    if (!el.outlinePanel.classList.contains('is-open')) {
+      return;
+    }
+    el.outlinePanel.classList.remove('is-open');
+    el.outlinePanel.setAttribute('aria-hidden', 'true');
+    el.outlineToggle.setAttribute('aria-expanded', 'false');
+    el.scrim.classList.remove('is-visible');
+    setTimeout(() => { el.scrim.hidden = true; }, 200);
+    el.outlineToggle.focus();
   };
 
   /* ------------------------------------------------------------------------
@@ -1143,9 +1644,24 @@ console.log(greeting("world"));
       button.addEventListener('click', () => {
         state.mode = button.dataset.mode;
         applyMode();
+        if (state.syncScroll) {
+          syncScrollPosition('editor');
+        }
         saveState();
       });
     });
+
+    el.syncScroll.addEventListener('click', () => {
+      state.syncScroll = !state.syncScroll;
+      applySyncScroll();
+      if (state.syncScroll) {
+        syncScrollPosition('editor');
+      }
+      saveState();
+    });
+
+    el.editor.addEventListener('scroll', () => syncScrollPosition('editor'));
+    el.previewPane.addEventListener('scroll', () => syncScrollPosition('preview'));
 
     el.themeToggle.addEventListener('click', () => {
       const previous = state.theme;
@@ -1173,10 +1689,21 @@ console.log(greeting("world"));
 
     el.templateToggle.addEventListener('click', openPanel);
     el.panelClose.addEventListener('click', closePanel);
-    el.scrim.addEventListener('click', closePanel);
+    el.outlineToggle.addEventListener('click', openOutline);
+    el.outlineClose.addEventListener('click', closeOutline);
+    el.outlineDepth.addEventListener('change', () => {
+      state.outlineDepth = clamp(Number(el.outlineDepth.value) || state.outlineDepth, 1, 6);
+      renderOutline();
+      saveState();
+    });
+    el.scrim.addEventListener('click', () => {
+      closePanel();
+      closeOutline();
+    });
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && el.panel.classList.contains('is-open')) {
+      if (event.key === 'Escape') {
         closePanel();
+        closeOutline();
       }
     });
 
@@ -1194,7 +1721,7 @@ console.log(greeting("world"));
       event.preventDefault();
       const start = el.editor.selectionStart;
       const end = el.editor.selectionEnd;
-      el.editor.setRangeText('  ', start, end, 'end');
+      replaceEditorRange(start, end, '  ');
       state.content = el.editor.value;
       renderStatus();
       saveState();
@@ -1207,6 +1734,15 @@ console.log(greeting("world"));
     el.listUnordered.addEventListener('click', transformSelectionToUnorderedList);
     el.listOrdered.addEventListener('click', transformSelectionToOrderedList);
     el.smartTable.addEventListener('click', transformSelectionToSmartTable);
+    el.mdBold.addEventListener('click', () => toggleInlineMark('**'));
+    el.mdItalic.addEventListener('click', () => toggleInlineMark('*'));
+    el.mdStrike.addEventListener('click', () => toggleInlineMark('~~'));
+    el.mdHeading.addEventListener('click', toggleHeading);
+    el.mdCode.addEventListener('click', () => toggleInlineMark('`'));
+    el.mdQuote.addEventListener('click', toggleBlockquote);
+    el.mdLink.addEventListener('click', insertLink);
+    el.editorFontDecrease.addEventListener('click', () => changeEditorFontSize(-EDITOR_FONT_STEP));
+    el.editorFontIncrease.addEventListener('click', () => changeEditorFontSize(EDITOR_FONT_STEP));
     el.exportWord.addEventListener('click', () => exportAs('word'));
     el.exportHtml.addEventListener('click', () => exportAs('html'));
     el.exportMd.addEventListener('click', () => exportAs('md'));
@@ -1234,6 +1770,7 @@ console.log(greeting("world"));
     controls.headingCase.addEventListener('change', () => patchTemplate({ headingCase: controls.headingCase.value }));
     controls.numberHeadings.addEventListener('change', () => patchTemplate({ numberHeadings: controls.numberHeadings.checked }));
     controls.numberDepth.addEventListener('input', () => patchTemplate({ numberDepth: Number(controls.numberDepth.value) }));
+    controls.numberStyle.addEventListener('change', () => patchTemplate({ numberStyle: controls.numberStyle.value }));
     controls.codeBg.addEventListener('input', () => patchTemplate({ codeBg: controls.codeBg.value }));
     controls.pageSize.addEventListener('change', () => patchTemplate({ pageSize: controls.pageSize.value }));
     controls.pageMargin.addEventListener('input', () => patchTemplate({ pageMargin: Number(controls.pageMargin.value) }));
@@ -1272,12 +1809,15 @@ console.log(greeting("world"));
     el.editor.value = state.content;
     el.docTitle.value = state.title;
     el.langSelect.value = state.lang;
+    el.outlineDepth.value = String(state.outlineDepth);
 
     renderTemplateControls();
     applyTemplateToPreview();
     applyTheme();
     applyLanguage();
     applyMode();
+    applyEditorFontSize();
+    applySyncScroll();
     render();
     bindEvents();
   };

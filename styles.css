@@ -123,13 +123,20 @@ svg {
 
 .app-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.3rem;
   min-block-size: var(--bar-h);
-  padding: 0.5rem 0.9rem;
+  padding: 0.3rem 0.6rem;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--bg-panel);
   border-block-end: 1px solid var(--line);
+}
+
+.app-bar svg {
+  inline-size: 16px;
+  block-size: 16px;
 }
 
 .app-bar-spacer {
@@ -139,36 +146,36 @@ svg {
 .brand {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: 0.25rem;
 }
 
 .brand-mark {
   color: var(--accent);
   font-family: var(--serif-font);
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
 .brand-name {
   font-family: var(--serif-font);
-  font-size: 1.15rem;
+  font-size: 0.84rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .doc-title {
-  flex: 0 1 16rem;
-  min-inline-size: 8rem;
+  flex: 0 1 10rem;
+  min-inline-size: 6rem;
 }
 
 .doc-title input {
   inline-size: 100%;
-  padding: 0.35rem 0.5rem;
+  padding: 0.2rem 0.35rem;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius);
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
 }
 
 .doc-title input:hover {
@@ -189,7 +196,7 @@ svg {
 /* Segmented view switch */
 .segmented {
   display: inline-flex;
-  padding: 3px;
+  padding: 2px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: calc(var(--radius) + 2px);
@@ -199,13 +206,13 @@ svg {
 .tool-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
   background: transparent;
   border: 0;
   border-radius: var(--radius);
   color: var(--ink-soft);
-  font-size: 0.82rem;
+  font-size: 0.64rem;
   transition: background-color var(--dur) ease, color var(--dur) ease;
 }
 
@@ -234,12 +241,26 @@ svg {
   color: var(--accent);
 }
 
+#sync-scroll[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+  color: var(--ink-soft);
+}
+
 .lang-select select {
-  padding: 0.4rem 0.5rem;
+  padding: 0.2rem 0.35rem;
   background: var(--bg-input);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  font-size: 0.82rem;
+  font-size: 0.64rem;
 }
 
 #theme-toggle .icon-moon {
@@ -292,7 +313,8 @@ svg {
   resize: none;
   color: var(--ink);
   font-family: var(--mono-font);
-  font-size: 0.95rem;
+  font-size: var(--editor-font-size, 0.95rem);
+  font-variant-ligatures: none;
   line-height: 1.7;
   tab-size: 2;
 }
@@ -375,6 +397,68 @@ svg {
 
 .panel.is-open {
   transform: translateX(0);
+}
+
+.panel-left {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  border-inline-start: 0;
+  border-inline-end: 1px solid var(--line);
+  transform: translateX(-101%);
+}
+
+[dir="rtl"] .panel-left {
+  transform: translateX(101%);
+}
+
+.panel-left.is-open {
+  transform: translateX(0);
+}
+
+.outline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-block-start: 0.75rem;
+}
+
+.outline-item {
+  display: block;
+  inline-size: 100%;
+  padding: 0.35rem 0.6rem;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background-color var(--dur) ease, color var(--dur) ease;
+}
+
+.outline-item:hover {
+  background: var(--bg-elev);
+  color: var(--ink);
+}
+
+.outline-item[data-level="1"] {
+  padding-inline-start: 0.6rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.outline-item[data-level="2"] { padding-inline-start: 1.3rem; }
+.outline-item[data-level="3"] { padding-inline-start: 2rem; }
+.outline-item[data-level="4"] { padding-inline-start: 2.7rem; }
+.outline-item[data-level="5"] { padding-inline-start: 3.4rem; }
+.outline-item[data-level="6"] { padding-inline-start: 4.1rem; }
+
+.outline-empty {
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  font-style: italic;
 }
 
 .panel-head {
@@ -685,6 +769,10 @@ svg {
   margin-block-end: 0.25em;
 }
 
+.doc-preview li > p {
+  margin-block: 0;
+}
+
 .doc-preview blockquote {
   margin: 0 0 var(--doc-para);
   padding-inline-start: 1em;
@@ -756,6 +844,11 @@ svg {
    -------------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
+  .app-bar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
   .doc-title {
     flex: 1 1 100%;
     order: 5;
