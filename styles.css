@@ -241,11 +241,6 @@ svg {
   color: var(--accent);
 }
 
-#sync-scroll[aria-pressed="true"] {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .tool-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

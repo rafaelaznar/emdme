@@ -141,7 +141,6 @@
       'action.inlineCode': 'Code',
       'action.blockquote': 'Quote',
       'action.link': 'Link',
-      'action.syncScroll': 'Sync scroll',
       'toast.noSelection': 'Select some text first',
       'confirm.tableHeader': 'Does the first line contain the column headers?',
       'table.columnPrefix': 'Column',
@@ -231,7 +230,6 @@
       'action.inlineCode': 'Código',
       'action.blockquote': 'Cita',
       'action.link': 'Enlace',
-      'action.syncScroll': 'Sincronizar desplazamiento',
       'toast.noSelection': 'Selecciona primero algo de texto',
       'confirm.tableHeader': '¿La primera línea contiene las cabeceras de columna?',
       'table.columnPrefix': 'Columna',
@@ -321,7 +319,6 @@
       'action.inlineCode': 'Codi',
       'action.blockquote': 'Cita',
       'action.link': 'Enllaç',
-      'action.syncScroll': 'Sincronitzar desplaçament',
       'toast.noSelection': 'Selecciona primer un text',
       'confirm.tableHeader': 'La primera línia conté les capçaleres de columna?',
       'table.columnPrefix': 'Columna',
@@ -636,6 +633,7 @@ console.log(greeting("world"));
     const parts = [];
     let line = 0;
     tokens.forEach((token) => {
+      const span = token.raw ? (token.raw.match(/\n/g) || []).length : 0;
       if (token.type !== 'space') {
         const block = document.createElement('div');
         block.innerHTML = sanitizeHtml(marked.parser([token]));
@@ -643,11 +641,12 @@ console.log(greeting("world"));
         if (first) {
           if (withLines) {
             first.dataset.line = String(line);
+            first.dataset.lineEnd = String(line + Math.max(1, span));
           }
           parts.push(block.innerHTML);
         }
       }
-      line += token.raw ? (token.raw.match(/\n/g) || []).length : 0;
+      line += span;
     });
     const holder = document.createElement('div');
     holder.innerHTML = parts.join('');
@@ -668,7 +667,6 @@ console.log(greeting("world"));
     theme: 'light',
     lang: 'en',
     editorFontSize: EDITOR_FONT_DEFAULT,
-    syncScroll: true,
     outlineDepth: 3,
     template: { ...DEFAULT_TEMPLATE },
   };
@@ -696,7 +694,6 @@ console.log(greeting("world"));
         editorFontSize: typeof stored.editorFontSize === 'number'
           ? clamp(stored.editorFontSize, EDITOR_FONT_MIN, EDITOR_FONT_MAX)
           : state.editorFontSize,
-        syncScroll: typeof stored.syncScroll === 'boolean' ? stored.syncScroll : state.syncScroll,
         outlineDepth: Number.isFinite(stored.outlineDepth)
           ? clamp(stored.outlineDepth, 1, 6)
           : state.outlineDepth,
@@ -792,7 +789,6 @@ console.log(greeting("world"));
     el.mdLink = $('#md-link');
     el.editorFontDecrease = $('#editor-font-decrease');
     el.editorFontIncrease = $('#editor-font-increase');
-    el.syncScroll = $('#sync-scroll');
     el.reset = $('#tpl-reset');
   };
 
@@ -844,97 +840,197 @@ console.log(greeting("world"));
     el.editor.style.setProperty('--editor-font-size', `${state.editorFontSize}rem`);
     el.editorFontDecrease.disabled = state.editorFontSize <= EDITOR_FONT_MIN;
     el.editorFontIncrease.disabled = state.editorFontSize >= EDITOR_FONT_MAX;
-  };
-
-  const applySyncScroll = () => {
-    el.syncScroll.setAttribute('aria-pressed', String(state.syncScroll));
-  };
-
-  const editorMetrics = () => {
-    const style = getComputedStyle(el.editor);
-    const fontSize = parseFloat(style.fontSize) || 16;
-    const lineHeight = style.lineHeight.endsWith('px')
-      ? parseFloat(style.lineHeight)
-      : fontSize * (parseFloat(style.lineHeight) || 1.7);
-    return { lineHeight, paddingTop: parseFloat(style.paddingTop) || 0 };
+    invalidateEditorLayout();
   };
 
   const previewBlocks = () => Array.from(el.preview.querySelectorAll('[data-line]'));
 
-  const scrollProgress = (node) => {
-    const max = node.scrollHeight - node.clientHeight;
-    return max > 0 ? node.scrollTop / max : 0;
-  };
+  let editorLayoutCache = null;
 
-  const lastBlockAtOrBefore = (blocks, line) => {
-    let target = blocks[0];
-    blocks.forEach((block) => {
-      if (Number(block.dataset.line) <= line) {
-        target = block;
-      }
-    });
-    return target;
-  };
-
-  const lastBlockStartingBefore = (blocks, limit) => {
-    let target = blocks[0];
-    blocks.forEach((block) => {
-      if (block.getBoundingClientRect().top < limit) {
-        target = block;
-      }
-    });
-    return target;
+  const invalidateEditorLayout = () => {
+    editorLayoutCache = null;
   };
 
   /**
-   * Scroll the preview to follow the editor. In the first half of the document
-   * the top block is aligned to the top; past the middle, the bottom block is
-   * aligned to the bottom so the end of the document stays in view.
+   * Measure the top offset and height of every source line as the browser lays
+   * it out in the editor. Wrapping means several visual lines may belong to one
+   * source line, so this uses a hidden mirror to get exact positions.
+   * @returns {{offsets:number[], heights:number[]}} Per source line metrics.
+   */
+  const buildEditorLayout = () => {
+    if (editorLayoutCache) {
+      return editorLayoutCache;
+    }
+    const editor = el.editor;
+    const style = getComputedStyle(editor);
+    const mirror = document.createElement('div');
+    mirror.style.position = 'absolute';
+    mirror.style.top = '0';
+    mirror.style.left = '-9999px';
+    mirror.style.visibility = 'hidden';
+    mirror.style.pointerEvents = 'none';
+    mirror.style.boxSizing = 'border-box';
+    mirror.style.width = `${editor.clientWidth}px`;
+    mirror.style.padding = style.padding;
+    mirror.style.fontFamily = style.fontFamily;
+    mirror.style.fontSize = style.fontSize;
+    mirror.style.fontWeight = style.fontWeight;
+    mirror.style.fontStyle = style.fontStyle;
+    mirror.style.letterSpacing = style.letterSpacing;
+    mirror.style.lineHeight = style.lineHeight;
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.overflowWrap = 'break-word';
+    mirror.style.tabSize = style.tabSize;
+    mirror.innerHTML = editor.value
+      .split('\n')
+      .map((text) => `<div>${escapeHtml(text) || '<br>'}</div>`)
+      .join('');
+    document.body.appendChild(mirror);
+    const offsets = [];
+    const heights = [];
+    Array.from(mirror.children).forEach((child) => {
+      offsets.push(child.offsetTop);
+      heights.push(child.offsetHeight);
+    });
+    document.body.removeChild(mirror);
+    editorLayoutCache = { offsets, heights };
+    return editorLayoutCache;
+  };
+
+  const editorYForLine = (line) => {
+    const { offsets, heights } = buildEditorLayout();
+    if (offsets.length === 0) {
+      return 0;
+    }
+    const value = clamp(line, 0, offsets.length);
+    const index = Math.min(offsets.length - 1, Math.floor(value));
+    return offsets[index] + (value - index) * heights[index];
+  };
+
+  const editorLineForY = (y) => {
+    const { offsets, heights } = buildEditorLayout();
+    if (offsets.length === 0) {
+      return 0;
+    }
+    if (y <= offsets[0]) {
+      return 0;
+    }
+    for (let i = 0; i < offsets.length; i += 1) {
+      if (y < offsets[i] + heights[i]) {
+        const fraction = heights[i] > 0 ? (y - offsets[i]) / heights[i] : 0;
+        return i + fraction;
+      }
+    }
+    return offsets.length;
+  };
+
+  let previewPointsCache = null;
+
+  const invalidatePreviewPoints = () => {
+    previewPointsCache = null;
+  };
+
+  /**
+   * Build the mapping between source lines and preview pixels. Each block knows
+   * the source lines it spans, so tall blocks (code, long paragraphs) map
+   * accurately instead of collapsing to a single point.
+   * @returns {Array<{line:number, y:number}>} Points sorted by line, then pixel.
+   */
+  const previewPoints = () => {
+    if (previewPointsCache) {
+      return previewPointsCache;
+    }
+    const pane = el.previewPane;
+    const paneTop = pane.getBoundingClientRect().top - pane.scrollTop;
+    const points = [];
+    previewBlocks().forEach((block) => {
+      const start = Number(block.dataset.line);
+      const end = Number(block.dataset.lineEnd) || start + 1;
+      const rect = block.getBoundingClientRect();
+      const top = rect.top - paneTop;
+      points.push({ line: start, y: top });
+      points.push({ line: end, y: top + rect.height });
+    });
+    points.sort((a, b) => (a.line - b.line) || (a.y - b.y));
+    previewPointsCache = points;
+    return points;
+  };
+
+  /**
+   * Map a source line to a pixel offset inside the preview content.
+   * @param {number} line - Source line (may be fractional).
+   * @returns {number} Pixel offset.
+   */
+  const previewYForLine = (line) => {
+    const points = previewPoints();
+    if (points.length === 0) {
+      return 0;
+    }
+    if (line <= points[0].line) {
+      return points[0].y;
+    }
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (line <= b.line) {
+        const span = b.line - a.line;
+        const fraction = span > 0 ? (line - a.line) / span : 0;
+        return a.y + fraction * (b.y - a.y);
+      }
+    }
+    return points[points.length - 1].y;
+  };
+
+  /**
+   * Map a pixel offset inside the preview content to a source line.
+   * @param {number} y - Pixel offset.
+   * @returns {number} Source line (may be fractional).
+   */
+  const previewLineForY = (y) => {
+    const points = previewPoints();
+    if (points.length === 0) {
+      return 0;
+    }
+    if (y <= points[0].y) {
+      return points[0].line;
+    }
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (y <= b.y) {
+        const span = b.y - a.y;
+        const fraction = span > 0 ? (y - a.y) / span : 0;
+        return a.line + fraction * (b.line - a.line);
+      }
+    }
+    return points[points.length - 1].line;
+  };
+
+  /**
+   * Scroll the preview so the line at the top of the editor sits at the top of
+   * the preview. Both mappings are per source line, so the panes always show
+   * overlapping content even when the document lengths differ.
    */
   const alignPreviewToEditor = () => {
-    const blocks = previewBlocks();
-    if (blocks.length === 0) {
+    if (state.mode !== 'split' || previewPoints().length === 0) {
       return;
     }
-    const { lineHeight, paddingTop } = editorMetrics();
-    const pane = el.previewPane;
-    const paneRect = pane.getBoundingClientRect();
-    if (scrollProgress(el.editor) < 0.5) {
-      const topLine = Math.max(0, Math.floor((el.editor.scrollTop - paddingTop) / lineHeight));
-      const target = lastBlockAtOrBefore(blocks, topLine);
-      pane.scrollTop += target.getBoundingClientRect().top - paneRect.top;
-    } else {
-      const bottomLine = Math.floor(
-        (el.editor.scrollTop + el.editor.clientHeight - paddingTop) / lineHeight
-      );
-      const target = lastBlockAtOrBefore(blocks, Math.max(0, bottomLine));
-      pane.scrollTop += target.getBoundingClientRect().bottom - paneRect.bottom;
-    }
+    const topLine = editorLineForY(el.editor.scrollTop);
+    const maxScroll = Math.max(0, el.previewPane.scrollHeight - el.previewPane.clientHeight);
+    el.previewPane.scrollTop = clamp(previewYForLine(topLine), 0, maxScroll);
   };
 
   /**
-   * Scroll the editor to follow the preview using the same top/bottom rule.
+   * Scroll the editor so the line at the top of the preview sits at the top of
+   * the editor.
    */
   const alignEditorToPreview = () => {
-    const blocks = previewBlocks();
-    if (blocks.length === 0) {
+    if (state.mode !== 'split' || previewPoints().length === 0) {
       return;
     }
-    const { lineHeight, paddingTop } = editorMetrics();
-    const pane = el.previewPane;
-    const paneRect = pane.getBoundingClientRect();
-    if (scrollProgress(pane) < 0.5) {
-      const target = lastBlockStartingBefore(blocks, paneRect.top + 1);
-      const line = Number(target.dataset.line) || 0;
-      el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
-    } else {
-      const target = lastBlockStartingBefore(blocks, paneRect.bottom);
-      const line = Number(target.dataset.line) || 0;
-      el.editor.scrollTop = Math.max(
-        0,
-        paddingTop + (line + 1) * lineHeight - el.editor.clientHeight
-      );
-    }
+    const line = previewLineForY(el.previewPane.scrollTop);
+    const maxScroll = Math.max(0, el.editor.scrollHeight - el.editor.clientHeight);
+    el.editor.scrollTop = clamp(editorYForLine(line), 0, maxScroll);
   };
 
   /**
@@ -943,7 +1039,7 @@ console.log(greeting("world"));
    * @param {'editor'|'preview'} source - Pane the user is scrolling.
    */
   const syncScrollPosition = (source) => {
-    if (!state.syncScroll || syncing) {
+    if (syncing) {
       return;
     }
     syncing = true;
@@ -995,6 +1091,7 @@ console.log(greeting("world"));
     HEADING_RATIOS.forEach((ratio, index) => {
       style.setProperty(`--doc-h${index + 1}`, `calc(${base} * ${round(ratio * template.headingScale, 3)})`);
     });
+    invalidatePreviewPoints();
   };
 
   /**
@@ -1093,9 +1190,9 @@ console.log(greeting("world"));
       el.preview.innerHTML = `<p class="preview-empty">${escapeHtml(t('empty.preview'))}</p>`;
     } else {
       el.preview.innerHTML = renderDocument(state.content, state.template, true);
-      if (state.syncScroll) {
-        syncScrollPosition('editor');
-      }
+      invalidatePreviewPoints();
+      invalidateEditorLayout();
+      syncScrollPosition('editor');
     }
     if (el.outlinePanel.classList.contains('is-open')) {
       renderOutline();
@@ -1457,6 +1554,7 @@ console.log(greeting("world"));
     el.editor.setSelectionRange(from, to);
     el.editor.scrollTop = scrollTop;
     el.editor.focus();
+    invalidateEditorLayout();
   };
 
   const applySelectionTransform = (transformFn) => {
@@ -1643,11 +1741,10 @@ console.log(greeting("world"));
    * @param {number} line - Zero-based source line of the heading.
    */
   const jumpToHeading = (line) => {
-    const { lineHeight, paddingTop } = editorMetrics();
     const start = lineStartIndex(state.content, line);
     el.editor.focus();
     el.editor.setSelectionRange(start, start);
-    el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
+    el.editor.scrollTop = Math.max(0, editorYForLine(line));
     const block = el.preview.querySelector(`[data-line="${line}"]`);
     if (block) {
       const paneTop = el.previewPane.getBoundingClientRect().top;
@@ -1754,24 +1851,17 @@ console.log(greeting("world"));
       button.addEventListener('click', () => {
         state.mode = button.dataset.mode;
         applyMode();
-        if (state.syncScroll) {
-          syncScrollPosition('editor');
-        }
+        syncScrollPosition('editor');
         saveState();
       });
     });
 
-    el.syncScroll.addEventListener('click', () => {
-      state.syncScroll = !state.syncScroll;
-      applySyncScroll();
-      if (state.syncScroll) {
-        syncScrollPosition('editor');
-      }
-      saveState();
-    });
-
     el.editor.addEventListener('scroll', () => syncScrollPosition('editor'));
     el.previewPane.addEventListener('scroll', () => syncScrollPosition('preview'));
+    window.addEventListener('resize', () => {
+      invalidatePreviewPoints();
+      invalidateEditorLayout();
+    });
 
     el.themeToggle.addEventListener('click', () => {
       const previous = state.theme;
@@ -1821,6 +1911,7 @@ console.log(greeting("world"));
       state.content = el.editor.value;
       renderStatus();
       saveState();
+      invalidateEditorLayout();
       scheduleRender();
     });
 
@@ -1929,7 +2020,6 @@ console.log(greeting("world"));
     applyLanguage();
     applyMode();
     applyEditorFontSize();
-    applySyncScroll();
     render();
     bindEvents();
   };
