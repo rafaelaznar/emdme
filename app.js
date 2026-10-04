@@ -55,8 +55,14 @@
 
   /* Theme-aware default colours. Custom colours survive a theme switch. */
   const THEME_COLORS = {
-    light: { headingColor: '#191a1c', linkColor: '#1f6f78', codeBg: '#ededf0' },
-    dark: { headingColor: '#f1f1ec', linkColor: '#69ccc1', codeBg: '#23262b' },
+    light: {
+      headingColor: '#191a1c', linkColor: '#1f6f78', codeBg: '#ededf0',
+      tableHeadBg: '#ededf0', tableHeadColor: '#191a1c',
+    },
+    dark: {
+      headingColor: '#f1f1ec', linkColor: '#69ccc1', codeBg: '#23262b',
+      tableHeadBg: '#23262b', tableHeadColor: '#f1f1ec',
+    },
   };
 
   const DEFAULT_TEMPLATE = Object.freeze({
@@ -77,6 +83,11 @@
     numberStyle: 'decimal',
     monoFont: FONT_MONO,
     codeBg: THEME_COLORS.light.codeBg,
+    tableSize: 0.95,
+    tablePadding: 0.5,
+    tableHeadBg: THEME_COLORS.light.tableHeadBg,
+    tableHeadColor: THEME_COLORS.light.tableHeadColor,
+    tableHeadWeight: 600,
     pageSize: 'A4',
     pageMargin: 22,
   });
@@ -177,6 +188,12 @@
       'panel.code': 'Code',
       'panel.monoFont': 'Monospace font',
       'panel.codeBg': 'Background',
+      'panel.tables': 'Tables',
+      'panel.tableHeadBg': 'Header background',
+      'panel.tableHeadColor': 'Header text color',
+      'panel.tableHeadWeight': 'Header weight',
+      'panel.tableSize': 'Text size',
+      'panel.tablePadding': 'Cell padding',
       'panel.page': 'Page & export',
       'panel.pageSize': 'Paper size',
       'panel.pageMargin': 'Margin',
@@ -266,6 +283,12 @@
       'panel.code': 'Código',
       'panel.monoFont': 'Tipografía monoespaciada',
       'panel.codeBg': 'Fondo',
+      'panel.tables': 'Tablas',
+      'panel.tableHeadBg': 'Fondo de cabecera',
+      'panel.tableHeadColor': 'Color de texto de cabecera',
+      'panel.tableHeadWeight': 'Grosor de cabecera',
+      'panel.tableSize': 'Tamaño de texto',
+      'panel.tablePadding': 'Márgenes de celda',
       'panel.page': 'Página y exportación',
       'panel.pageSize': 'Tamaño de papel',
       'panel.pageMargin': 'Margen',
@@ -355,6 +378,12 @@
       'panel.code': 'Codi',
       'panel.monoFont': 'Tipografia monoespaiada',
       'panel.codeBg': 'Fons',
+      'panel.tables': 'Taules',
+      'panel.tableHeadBg': 'Fons de capçalera',
+      'panel.tableHeadColor': 'Color de text de capçalera',
+      'panel.tableHeadWeight': 'Grossor de capçalera',
+      'panel.tableSize': 'Tamany de text',
+      'panel.tablePadding': 'Marges de cel·la',
       'panel.page': 'Pàgina i exportació',
       'panel.pageSize': 'Tamany de paper',
       'panel.pageMargin': 'Marge',
@@ -668,6 +697,7 @@ console.log(greeting("world"));
     lang: 'en',
     editorFontSize: EDITOR_FONT_DEFAULT,
     outlineDepth: 3,
+    fileName: '',
     template: { ...DEFAULT_TEMPLATE },
   };
 
@@ -697,6 +727,7 @@ console.log(greeting("world"));
         outlineDepth: Number.isFinite(stored.outlineDepth)
           ? clamp(stored.outlineDepth, 1, 6)
           : state.outlineDepth,
+        fileName: typeof stored.fileName === 'string' ? stored.fileName : state.fileName,
       });
       state.template = { ...DEFAULT_TEMPLATE, ...(stored.template || {}) };
     } catch (error) {
@@ -723,7 +754,6 @@ console.log(greeting("world"));
     el.editor = $('#editor');
     el.preview = $('#preview');
     el.previewPane = $('.pane-preview');
-    el.docTitle = $('#doc-title');
     el.langSelect = $('#lang-select');
     el.themeToggle = $('#theme-toggle');
     el.templateToggle = $('#template-toggle');
@@ -740,6 +770,7 @@ console.log(greeting("world"));
     el.statChars = $('#stat-chars');
     el.statReading = $('#stat-reading');
     el.statTemplate = $('#stat-template');
+    el.statFile = $('#stat-file');
     el.controls = {
       preset: $('#tpl-preset'),
       bodyFont: $('#tpl-body-font'),
@@ -758,6 +789,11 @@ console.log(greeting("world"));
       numberDepth: $('#tpl-number-depth'),
       numberStyle: $('#tpl-number-style'),
       codeBg: $('#tpl-code-bg'),
+      tableHeadBg: $('#tpl-table-head-bg'),
+      tableHeadColor: $('#tpl-table-head-color'),
+      tableHeadWeight: $('#tpl-table-head-weight'),
+      tableSize: $('#tpl-table-size'),
+      tablePadding: $('#tpl-table-padding'),
       pageSize: $('#tpl-page-size'),
       pageMargin: $('#tpl-page-margin'),
     };
@@ -768,6 +804,9 @@ console.log(greeting("world"));
       headingWeight: $('#out-heading-weight'),
       headingScale: $('#out-heading-scale'),
       numberDepth: $('#out-number-depth'),
+      tableHeadWeight: $('#out-table-head-weight'),
+      tableSize: $('#out-table-size'),
+      tablePadding: $('#out-table-padding'),
       pageMargin: $('#out-page-margin'),
     };
     el.exportWord = $('#export-word');
@@ -809,7 +848,13 @@ console.log(greeting("world"));
   const applyLanguage = () => {
     document.documentElement.lang = state.lang === 'val' ? 'ca' : state.lang;
     $$('[data-i18n]').forEach((node) => {
-      node.textContent = t(node.dataset.i18n);
+      const value = t(node.dataset.i18n);
+      const textNode = Array.from(node.childNodes).find((child) => child.nodeType === Node.TEXT_NODE);
+      if (node.children.length > 0 && textNode) {
+        textNode.textContent = `${value} `;
+        return;
+      }
+      node.textContent = value;
     });
     $$('[data-i18n-placeholder]').forEach((node) => {
       node.placeholder = t(node.dataset.i18nPlaceholder);
@@ -1088,6 +1133,11 @@ console.log(greeting("world"));
     style.setProperty('--doc-heading-weight', template.headingWeight);
     style.setProperty('--doc-heading-case', template.headingCase === 'small-caps' ? 'none' : template.headingCase);
     style.setProperty('--doc-heading-variant', template.headingCase === 'small-caps' ? 'small-caps' : 'normal');
+    style.setProperty('--doc-table-size', `${template.tableSize}em`);
+    style.setProperty('--doc-table-padding', `${template.tablePadding}em`);
+    style.setProperty('--doc-table-head-bg', template.tableHeadBg);
+    style.setProperty('--doc-table-head-color', template.tableHeadColor);
+    style.setProperty('--doc-table-head-weight', template.tableHeadWeight);
     HEADING_RATIOS.forEach((ratio, index) => {
       style.setProperty(`--doc-h${index + 1}`, `calc(${base} * ${round(ratio * template.headingScale, 3)})`);
     });
@@ -1117,6 +1167,11 @@ console.log(greeting("world"));
     controls.numberDepth.value = template.numberDepth;
     controls.numberStyle.value = template.numberStyle;
     controls.codeBg.value = template.codeBg;
+    controls.tableHeadBg.value = template.tableHeadBg;
+    controls.tableHeadColor.value = template.tableHeadColor;
+    controls.tableHeadWeight.value = template.tableHeadWeight;
+    controls.tableSize.value = template.tableSize;
+    controls.tablePadding.value = template.tablePadding;
     controls.pageSize.value = template.pageSize;
     controls.pageMargin.value = template.pageMargin;
     updateOutputs();
@@ -1134,6 +1189,9 @@ console.log(greeting("world"));
       clamp(template.numberDepth, 1, 6),
       template.numberStyle
     );
+    el.outputs.tableHeadWeight.value = template.tableHeadWeight;
+    el.outputs.tableSize.value = `${template.tableSize.toFixed(2)}em`;
+    el.outputs.tablePadding.value = `${template.tablePadding.toFixed(2)}em`;
     el.outputs.pageMargin.value = `${template.pageMargin}mm`;
   };
 
@@ -1173,7 +1231,7 @@ console.log(greeting("world"));
     const before = THEME_COLORS[previous];
     const after = THEME_COLORS[next];
     const patch = {};
-    ['headingColor', 'linkColor', 'codeBg'].forEach((key) => {
+    ['headingColor', 'linkColor', 'codeBg', 'tableHeadBg', 'tableHeadColor'].forEach((key) => {
       if (state.template[key] === before[key]) {
         patch[key] = after[key];
       }
@@ -1206,6 +1264,8 @@ console.log(greeting("world"));
     el.statReading.textContent = String(Math.max(1, Math.ceil(words / 200)));
     const name = state.template.preset;
     el.statTemplate.textContent = name === 'custom' ? t('preset.custom') : t(`preset.${name}`);
+    el.statFile.value = state.fileName || '';
+    el.statFile.title = state.fileName || '';
   };
 
   const render = () => {
@@ -1230,6 +1290,8 @@ console.log(greeting("world"));
     const paraPt = round(template.paraSpacing * basePt);
     const headingTop = round(basePt * 1.5);
     const headingBottom = round(basePt * 0.55);
+    const tablePadV = round(template.tablePadding * basePt * template.tableSize);
+    const tablePadH = round(tablePadV * 1.4);
     const headingFont = resolveHeadingFont(template);
     const headingCase = template.headingCase === 'small-caps' ? 'none' : template.headingCase;
     const headingVariant = template.headingCase === 'small-caps' ? 'small-caps' : 'normal';
@@ -1265,9 +1327,9 @@ console.log(greeting("world"));
       `code { font-family: ${template.monoFont}; font-size: 0.9em; background: ${template.codeBg}; padding: 1pt 3pt; }`,
       `pre { font-family: ${template.monoFont}; font-size: 0.86em; background: ${template.codeBg}; padding: 8pt 10pt; white-space: pre-wrap; }`,
       'pre code { background: transparent; padding: 0; }',
-      'table { border-collapse: collapse; width: 100%; margin-bottom: ' + paraPt + 'pt; }',
-      'th, td { border: 1pt solid #b9b9b4; padding: 5pt 7pt; text-align: left; }',
-      `th { background: ${template.codeBg}; font-weight: 600; }`,
+      'table { border-collapse: collapse; width: 100%; margin-bottom: ' + paraPt + 'pt; font-size: ' + template.tableSize + 'em; }',
+      `th, td { border: 1pt solid #b9b9b4; padding: ${tablePadV}pt ${tablePadH}pt; text-align: left; }`,
+      `th { background: ${template.tableHeadBg}; color: ${template.tableHeadColor}; font-weight: ${template.tableHeadWeight}; }`,
       `hr { border: 0; border-top: 1pt solid #b9b9b4; margin: 18pt 0; }`,
       'img { max-width: 100%; }'
     );
@@ -1351,10 +1413,14 @@ console.log(greeting("world"));
 
   const saveAsDocument = async () => {
     if (typeof window.showSaveFilePicker !== 'function') {
+      const name = `${slugify(state.title)}.md`;
       downloadBlob(
         new Blob([state.content], { type: 'text/markdown;charset=utf-8' }),
-        `${slugify(state.title)}.md`
+        name
       );
+      state.fileName = name;
+      renderStatus();
+      saveState();
       showToast(t('toast.saved'));
       return;
     }
@@ -1370,6 +1436,9 @@ console.log(greeting("world"));
       });
       await saveToHandle(fileHandle);
       currentFileHandle = fileHandle;
+      state.fileName = fileHandle.name;
+      renderStatus();
+      saveState();
       showToast(t('toast.saved'));
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -1396,7 +1465,7 @@ console.log(greeting("world"));
   };
 
   /**
-   * Load a document's text into the editor, preview and title.
+   * Load a document's text into the editor, preview and status bar.
    * @param {string} name - File name, used to derive the document title.
    * @param {string} text - File contents.
    * @param {FileSystemFileHandle|null} [handle] - Handle to keep for quick saves.
@@ -1404,10 +1473,10 @@ console.log(greeting("world"));
   const applyDocument = (name, text, handle = null) => {
     state.content = text;
     state.title = (name || '').replace(/\.[^.]+$/, '') || 'Untitled document';
+    state.fileName = name || '';
     currentFileHandle = handle;
     el.editor.value = text;
     el.editor.scrollTop = 0;
-    el.docTitle.value = state.title;
     renderStatus();
     renderPreview();
     saveState();
@@ -1669,10 +1738,51 @@ console.log(greeting("world"));
     return nextLevel === 0 ? content : `${'#'.repeat(nextLevel)} ${content}`;
   }));
 
-  const toggleBlockquote = () => transformSelectedLines((lines) => {
-    const quoted = lines.every((line) => /^>\s?/.test(line) || line.trim() === '');
-    return lines.map((line) => (quoted ? line.replace(/^>\s?/, '') : `> ${line}`));
-  });
+  /**
+   * Find the contiguous block of non-empty lines around a caret position.
+   * @param {string} value - Editor text.
+   * @param {number} position - Caret offset.
+   * @returns {[number, number]} Start and end offsets of the paragraph.
+   */
+  const paragraphRangeAt = (value, position) => {
+    let start = value.lastIndexOf('\n', position - 1) + 1;
+    let end = value.indexOf('\n', position);
+    if (end === -1) {
+      end = value.length;
+    }
+    const isBlank = (from, to) => value.slice(from, to).trim() === '';
+    while (start > 0) {
+      const prevEnd = start - 1;
+      const prevStart = value.lastIndexOf('\n', prevEnd - 1) + 1;
+      if (isBlank(prevStart, prevEnd)) {
+        break;
+      }
+      start = prevStart;
+    }
+    while (end < value.length) {
+      const nextStart = end + 1;
+      let nextEnd = value.indexOf('\n', nextStart);
+      if (nextEnd === -1) {
+        nextEnd = value.length;
+      }
+      if (isBlank(nextStart, nextEnd)) {
+        break;
+      }
+      end = nextEnd;
+    }
+    return [start, end];
+  };
+
+  const toggleBlockquote = () => {
+    if (el.editor.selectionStart === el.editor.selectionEnd) {
+      const [start, end] = paragraphRangeAt(el.editor.value, el.editor.selectionStart);
+      el.editor.setSelectionRange(start, end);
+    }
+    transformSelectedLines((lines) => {
+      const quoted = lines.every((line) => /^>\s?/.test(line) || line.trim() === '');
+      return lines.map((line) => (quoted ? line.replace(/^>\s?/, '') : `> ${line}`));
+    });
+  };
 
   const insertLink = () => {
     const { start, end, text } = getSelectionRange();
@@ -1882,11 +1992,6 @@ console.log(greeting("world"));
       saveState();
     });
 
-    el.docTitle.addEventListener('input', () => {
-      state.title = el.docTitle.value;
-      saveState();
-    });
-
     el.templateToggle.addEventListener('click', openPanel);
     el.panelClose.addEventListener('click', closePanel);
     el.outlineToggle.addEventListener('click', openOutline);
@@ -1975,6 +2080,11 @@ console.log(greeting("world"));
     controls.numberDepth.addEventListener('input', () => patchTemplate({ numberDepth: Number(controls.numberDepth.value) }));
     controls.numberStyle.addEventListener('change', () => patchTemplate({ numberStyle: controls.numberStyle.value }));
     controls.codeBg.addEventListener('input', () => patchTemplate({ codeBg: controls.codeBg.value }));
+    controls.tableHeadBg.addEventListener('input', () => patchTemplate({ tableHeadBg: controls.tableHeadBg.value }));
+    controls.tableHeadColor.addEventListener('input', () => patchTemplate({ tableHeadColor: controls.tableHeadColor.value }));
+    controls.tableHeadWeight.addEventListener('input', () => patchTemplate({ tableHeadWeight: Number(controls.tableHeadWeight.value) }));
+    controls.tableSize.addEventListener('input', () => patchTemplate({ tableSize: Number(controls.tableSize.value) }));
+    controls.tablePadding.addEventListener('input', () => patchTemplate({ tablePadding: Number(controls.tablePadding.value) }));
     controls.pageSize.addEventListener('change', () => patchTemplate({ pageSize: controls.pageSize.value }));
     controls.pageMargin.addEventListener('input', () => patchTemplate({ pageMargin: Number(controls.pageMargin.value) }));
     el.reset.addEventListener('click', () => {
@@ -2010,7 +2120,6 @@ console.log(greeting("world"));
     loadState();
 
     el.editor.value = state.content;
-    el.docTitle.value = state.title;
     el.langSelect.value = state.lang;
     el.outlineDepth.value = String(state.outlineDepth);
 
