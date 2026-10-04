@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Folio — Markdown studio
+   emdme — Markdown studio
    Application logic: rendering, view modes, theming, templates, localisation
    and export to Word / HTML / Markdown.
    ========================================================================== */
@@ -7,7 +7,7 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'folio.state.v1';
+  const STORAGE_KEY = 'emdme-app.state.v1';
   const TOAST_MS = 2000;
 
   /* ------------------------------------------------------------------------
@@ -128,6 +128,7 @@
       'doc.title': 'Document title',
       'action.save': 'Save',
       'action.saveAs': 'Save as',
+      'action.open': 'Open',
       'action.listUnordered': 'Bulleted list',
       'action.listOrdered': 'Numbered list',
       'action.smartTable': 'Smart table',
@@ -191,6 +192,8 @@
       'toast.exported': 'File exported',
       'toast.word': 'Word document exported',
       'toast.saved': 'Document saved',
+      'toast.opened': 'File opened',
+      'toast.openError': 'Could not open the file. Check the console for details.',
       'toast.saveError': 'Could not save the document. Check the console for details.',
       'toast.reset': 'Template reset',
       'empty.preview': 'Start typing to see the preview.',
@@ -215,6 +218,7 @@
       'doc.title': 'Título del documento',
       'action.save': 'Guardar',
       'action.saveAs': 'Guardar como',
+      'action.open': 'Abrir',
       'action.listUnordered': 'Lista con viñetas',
       'action.listOrdered': 'Lista numerada',
       'action.smartTable': 'Tabla inteligente',
@@ -278,6 +282,8 @@
       'toast.exported': 'Archivo exportado',
       'toast.word': 'Documento de Word exportado',
       'toast.saved': 'Documento guardado',
+      'toast.opened': 'Archivo abierto',
+      'toast.openError': 'No se pudo abrir el archivo. Consulta la consola para más detalles.',
       'toast.saveError': 'No se pudo guardar el documento. Consulta la consola para más detalles.',
       'toast.reset': 'Plantilla restablecida',
       'empty.preview': 'Empieza a escribir para ver la vista previa.',
@@ -302,6 +308,7 @@
       'doc.title': 'Títol del document',
       'action.save': 'Guardar',
       'action.saveAs': 'Guardar com',
+      'action.open': 'Obrir',
       'action.listUnordered': 'Llista amb pics',
       'action.listOrdered': 'Llista numerada',
       'action.smartTable': 'Taula intel·ligent',
@@ -365,6 +372,8 @@
       'toast.exported': 'Arxiu exportat',
       'toast.word': 'Document de Word exportat',
       'toast.saved': 'Document guardat',
+      'toast.opened': 'Arxiu obert',
+      'toast.openError': 'No s’ha pogut obrir l’arxiu. Consulta la consola per a més detalls.',
       'toast.saveError': 'No s’ha pogut guardar el document. Consulta la consola per a més detalls.',
       'toast.reset': 'Plantilla restablida',
       'empty.preview': 'Comença a escriure per a vore la vista prèvia.',
@@ -380,15 +389,15 @@
      Sample document.
      ------------------------------------------------------------------------ */
 
-  const SAMPLE_MARKDOWN = `# Folio
+  const SAMPLE_MARKDOWN = `# emdme
 
-**Folio** is a small Markdown studio. Write on the left, watch it render on
+**emdme** is a small Markdown studio. Write on the left, watch it render on
 the right, shape the typography, then export a clean Word file that keeps the
 styles you designed.
 
 ## Why it exists
 
-Most editors either bury the styling or lock it away. Folio keeps the template
+Most editors either bury the styling or lock it away. emdme keeps the template
 in plain view:
 
 1. Pick a preset or tune every value.
@@ -421,7 +430,7 @@ console.log(greeting("world"));
 
 ---
 
-*Folio* runs offline with no dependencies beyond Marked.
+*emdme* runs offline with no dependencies beyond Marked.
 `;
 
   /* ------------------------------------------------------------------------
@@ -694,7 +703,7 @@ console.log(greeting("world"));
       });
       state.template = { ...DEFAULT_TEMPLATE, ...(stored.template || {}) };
     } catch (error) {
-      console.warn('Folio: could not restore the saved session.', error);
+      console.warn('emdme: could not restore the saved session.', error);
     }
   };
 
@@ -702,7 +711,7 @@ console.log(greeting("world"));
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.warn('Folio: could not save the session.', error);
+      console.warn('emdme: could not save the session.', error);
     }
   }, 300);
 
@@ -767,6 +776,8 @@ console.log(greeting("world"));
     el.exportWord = $('#export-word');
     el.exportHtml = $('#export-html');
     el.exportMd = $('#export-md');
+    el.open = $('#open-document');
+    el.openFileInput = $('#open-file-input');
     el.save = $('#save-document');
     el.saveAs = $('#save-as-document');
     el.listUnordered = $('#list-unordered');
@@ -850,8 +861,35 @@ console.log(greeting("world"));
 
   const previewBlocks = () => Array.from(el.preview.querySelectorAll('[data-line]'));
 
+  const scrollProgress = (node) => {
+    const max = node.scrollHeight - node.clientHeight;
+    return max > 0 ? node.scrollTop / max : 0;
+  };
+
+  const lastBlockAtOrBefore = (blocks, line) => {
+    let target = blocks[0];
+    blocks.forEach((block) => {
+      if (Number(block.dataset.line) <= line) {
+        target = block;
+      }
+    });
+    return target;
+  };
+
+  const lastBlockStartingBefore = (blocks, limit) => {
+    let target = blocks[0];
+    blocks.forEach((block) => {
+      if (block.getBoundingClientRect().top < limit) {
+        target = block;
+      }
+    });
+    return target;
+  };
+
   /**
-   * Scroll the preview so the block at the top of the editor sits at the top.
+   * Scroll the preview to follow the editor. In the first half of the document
+   * the top block is aligned to the top; past the middle, the bottom block is
+   * aligned to the bottom so the end of the document stays in view.
    */
   const alignPreviewToEditor = () => {
     const blocks = previewBlocks();
@@ -859,19 +897,23 @@ console.log(greeting("world"));
       return;
     }
     const { lineHeight, paddingTop } = editorMetrics();
-    const topLine = Math.max(0, Math.floor((el.editor.scrollTop - paddingTop) / lineHeight));
-    let target = blocks[0];
-    blocks.forEach((block) => {
-      if (Number(block.dataset.line) <= topLine) {
-        target = block;
-      }
-    });
-    const paneTop = el.previewPane.getBoundingClientRect().top;
-    el.previewPane.scrollTop += target.getBoundingClientRect().top - paneTop;
+    const pane = el.previewPane;
+    const paneRect = pane.getBoundingClientRect();
+    if (scrollProgress(el.editor) < 0.5) {
+      const topLine = Math.max(0, Math.floor((el.editor.scrollTop - paddingTop) / lineHeight));
+      const target = lastBlockAtOrBefore(blocks, topLine);
+      pane.scrollTop += target.getBoundingClientRect().top - paneRect.top;
+    } else {
+      const bottomLine = Math.floor(
+        (el.editor.scrollTop + el.editor.clientHeight - paddingTop) / lineHeight
+      );
+      const target = lastBlockAtOrBefore(blocks, Math.max(0, bottomLine));
+      pane.scrollTop += target.getBoundingClientRect().bottom - paneRect.bottom;
+    }
   };
 
   /**
-   * Scroll the editor so the block at the top of the preview sits at the top.
+   * Scroll the editor to follow the preview using the same top/bottom rule.
    */
   const alignEditorToPreview = () => {
     const blocks = previewBlocks();
@@ -879,15 +921,20 @@ console.log(greeting("world"));
       return;
     }
     const { lineHeight, paddingTop } = editorMetrics();
-    const paneTop = el.previewPane.getBoundingClientRect().top;
-    let target = blocks[0];
-    blocks.forEach((block) => {
-      if (block.getBoundingClientRect().top - paneTop <= 1) {
-        target = block;
-      }
-    });
-    const line = Number(target.dataset.line) || 0;
-    el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
+    const pane = el.previewPane;
+    const paneRect = pane.getBoundingClientRect();
+    if (scrollProgress(pane) < 0.5) {
+      const target = lastBlockStartingBefore(blocks, paneRect.top + 1);
+      const line = Number(target.dataset.line) || 0;
+      el.editor.scrollTop = Math.max(0, paddingTop + line * lineHeight);
+    } else {
+      const target = lastBlockStartingBefore(blocks, paneRect.bottom);
+      const line = Number(target.dataset.line) || 0;
+      el.editor.scrollTop = Math.max(
+        0,
+        paddingTop + (line + 1) * lineHeight - el.editor.clientHeight
+      );
+    }
   };
 
   /**
@@ -1185,7 +1232,7 @@ console.log(greeting("world"));
       downloadBlob(new Blob([doc], { type: 'text/html;charset=utf-8' }), `${base}.html`);
       showToast(t('toast.exported'));
     } catch (error) {
-      console.error('Folio: export failed.', error);
+      console.error('emdme: export failed.', error);
       alert('Export failed. See the console for details.');
     }
   };
@@ -1199,7 +1246,7 @@ console.log(greeting("world"));
       try {
         await writable.abort();
       } catch (abortError) {
-        console.warn('Folio: could not abort the failed file write.', abortError);
+        console.warn('emdme: could not abort the failed file write.', abortError);
       }
       throw error;
     }
@@ -1231,7 +1278,7 @@ console.log(greeting("world"));
       if (error.name === 'AbortError') {
         return;
       }
-      console.error('Folio: save failed.', error);
+      console.error('emdme: save failed.', error);
       showToast(t('toast.saveError'));
     }
   };
@@ -1246,8 +1293,71 @@ console.log(greeting("world"));
       await saveToHandle(currentFileHandle);
       showToast(t('toast.saved'));
     } catch (error) {
-      console.error('Folio: save failed.', error);
+      console.error('emdme: save failed.', error);
       showToast(t('toast.saveError'));
+    }
+  };
+
+  /**
+   * Load a document's text into the editor, preview and title.
+   * @param {string} name - File name, used to derive the document title.
+   * @param {string} text - File contents.
+   * @param {FileSystemFileHandle|null} [handle] - Handle to keep for quick saves.
+   */
+  const applyDocument = (name, text, handle = null) => {
+    state.content = text;
+    state.title = (name || '').replace(/\.[^.]+$/, '') || 'Untitled document';
+    currentFileHandle = handle;
+    el.editor.value = text;
+    el.editor.scrollTop = 0;
+    el.docTitle.value = state.title;
+    renderStatus();
+    renderPreview();
+    saveState();
+  };
+
+  const openDocument = async () => {
+    if (typeof window.showOpenFilePicker !== 'function') {
+      el.openFileInput.value = '';
+      el.openFileInput.click();
+      return;
+    }
+
+    try {
+      const [fileHandle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{
+          description: 'Markdown document',
+          accept: { 'text/markdown': ['.md', '.markdown'], 'text/plain': ['.txt'] },
+        }],
+      });
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      applyDocument(file.name, text, fileHandle);
+      showToast(t('toast.opened'));
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      console.error('emdme: open failed.', error);
+      showToast(t('toast.openError'));
+    }
+  };
+
+  const openDocumentFromInput = async () => {
+    const file = el.openFileInput.files && el.openFileInput.files[0];
+    if (!file) {
+      return;
+    }
+    try {
+      const text = await file.text();
+      applyDocument(file.name, text);
+      showToast(t('toast.opened'));
+    } catch (error) {
+      console.error('emdme: open failed.', error);
+      showToast(t('toast.openError'));
+    } finally {
+      el.openFileInput.value = '';
     }
   };
 
@@ -1729,6 +1839,8 @@ console.log(greeting("world"));
     });
 
     bindTemplateControls();
+    el.open.addEventListener('click', openDocument);
+    el.openFileInput.addEventListener('change', openDocumentFromInput);
     el.save.addEventListener('click', saveDocument);
     el.saveAs.addEventListener('click', saveAsDocument);
     el.listUnordered.addEventListener('click', transformSelectionToUnorderedList);
